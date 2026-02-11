@@ -11,7 +11,7 @@
 - **point と複数カーネルの比較**: **point**（区間中央に最も近い1点の値）と **kernels_to_evaluate**（median, moving_average, gaussian, triangular, epanechnikov, hann）を区間中央を中心とした**一窓の代表値**で比較。グラフのタイトル・凡例にはケース YAML の **description** を使用（未設定時は case_id）。
 - **YAML による設定管理**: 共通パラメータ（窓幅・グラフ）とケース別（ファイル・区間・理論値・description）を分離。
 - **再現性確保**: 使用した設定を `output/<case>/params_used/` にコピー。
-- **Google Colab 対応**: ノートブックを開いてセルを実行するだけで利用可能。追加ライブラリはノートブック内の pip で導入される。
+- **Google Colab 対応**: リポジトリを Drive に置き、ノートブックを Colab で開いてセルを実行するだけで利用可能。追加ライブラリはノートブック内の pip で導入される。
 
 ## 動作環境
 
@@ -22,9 +22,10 @@
 
 ### Google Colab（推奨）
 
-1. リポジトリを clone したうえで、`notebooks/colab_quickstart.ipynb` を開く。
-2. 「1. 環境準備」のセルを上から順に実行する。Colab では `requirements-colab.txt` で実行に必要なパッケージのみインストールされる。
-3. 必要に応じて「2. Google Drive マウント」を実行し、データ・出力先を Drive に指定できる。
+1. **別の手順で** GitHub からリポジトリを clone し、**そのフォルダごと Google Drive に保存**する。
+2. Drive 上で `notebooks/colab_quickstart.ipynb` を開き、**「Colab で開く」** で起動する。
+3. 「1. 環境準備」の 1 つ目のセルで **Drive マウント** と **REPO_PATH**（Drive 上のリポジトリパス）を設定し、実行する。デフォルトは `/content/drive/MyDrive/DFOS-Element-Tests`（リポジトリをこのフォルダに置いている場合）。必要なら変更する。2 つ目のセルで **pip インストール**（`requirements-colab.txt`）のみ行う（ノートブック内では clone しない）。
+4. 必要に応じて「2. データ・出力先の設定」でデータ・出力先を Drive の別フォルダに指定できる。
 
 ### ローカル（venv 推奨）
 

@@ -7,7 +7,7 @@
 
 ## クイックリンク
 
-- Colab: `notebooks/colab_quickstart.ipynb` を開き、セルを上から実行
+- Colab: リポジトリを Google Drive に置き、`notebooks/colab_quickstart.ipynb` を Colab で開いてセルを上から実行（clone は別途実施）
 - 単一ケース実行: `python -m src.cli run --case case_01`
 - 全ケース: `python -m src.cli run --case all`
 
