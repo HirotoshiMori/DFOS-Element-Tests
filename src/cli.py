@@ -25,7 +25,13 @@ from src.data_loader import POSITION_COLUMN, apply_smoothing_kernel, load_case
 from src.evaluator import evaluate_all
 from src.exceptions import AnalysisError, DataLoadError, ValidationError
 from src.logger import log_environment, setup_logger
-from src.reporter import plot_case_result, plot_comparison, plot_metrics_comparison, plot_multi_case_results
+from src.reporter import (
+    plot_case_result,
+    plot_comparison,
+    plot_metrics_comparison,
+    plot_multi_case_results,
+    plot_multi_case_results_overlay,
+)
 
 
 @dataclass
@@ -413,9 +419,9 @@ def write_compare_outputs(
 ) -> pd.DataFrame | None:
     """比較結果の図と CSV を書き出し、結合した metrics DataFrame を返す。metrics_dfs が空なら None。"""
     if cases_data:
-        plot_multi_case_results(
-            cases_data, out_compare / "result.png",
-            shared_yscale=shared_yscale,
+        plot_multi_case_results_overlay(
+            cases_data,
+            out_compare / "result.png",
             ylim=plot_ylim,
         )
     if not metrics_dfs:
@@ -474,7 +480,7 @@ def run_compare(
     log_environment(logger)
     logger.info("比較開始: %s（計 %d ケース）", ", ".join(case_list), len(case_list))
     ran_any = False
-    for cid in case_list:
+    for cid in tqdm(case_list, desc="比較準備（ケース実行・結果収集）"):
         case_out = output_dir / cid
         had_results = (
             (case_out / "shear_strain_for_plot.csv").exists()
@@ -491,15 +497,31 @@ def run_compare(
     cases_data, metrics_dfs = collect_compare_data(output_dir, case_list)
     for d in cases_data:
         d["description"] = get_case_description(config_dir, d["case_id"])
+
+    # グラフ化する kernel: compare 設定で指定されていればそれを使い、無ければ common.yml の kernels_to_evaluate
+    kernels_to_plot: list[str] | None = None
+    if compare_config is not None:
+        kernels_to_plot = cfg.get("kernels")
     common_yml = config_dir / "common.yml"
-    shared_yscale = True
-    plot_ylim: tuple[float, float] | None = None
+    common_data: dict = {}
     if common_yml.exists():
         with open(common_yml, encoding="utf-8") as f:
             common_data = yaml.safe_load(f) or {}
-        plot_cfg = common_data.get("plot") or {}
-        shared_yscale = bool(plot_cfg.get("multi_case_shared_yscale", True))
-        plot_ylim = _parse_plot_ylim(plot_cfg)
+    if kernels_to_plot is None:
+        sm = common_data.get("smoothing") or {}
+        ke = sm.get("kernels_to_evaluate") or []
+        kernels_to_plot = ["point"] + [str(k) for k in ke]
+    if kernels_to_plot:
+        for d in cases_data:
+            by_k = d.get("predicted_by_kernel") or {}
+            d["predicted_by_kernel"] = {k: by_k[k] for k in kernels_to_plot if k in by_k}
+        for i, mdf in enumerate(metrics_dfs):
+            if not mdf.empty and "kernel" in mdf.columns:
+                metrics_dfs[i] = mdf[mdf["kernel"].astype(str).isin(kernels_to_plot)].copy()
+
+    plot_cfg = common_data.get("plot") or {}
+    shared_yscale = bool(plot_cfg.get("multi_case_shared_yscale", True))
+    plot_ylim = _parse_plot_ylim(plot_cfg)
     combined = write_compare_outputs(
         out_compare, cases_data, metrics_dfs,
         shared_yscale=shared_yscale,

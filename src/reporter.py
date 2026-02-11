@@ -196,6 +196,68 @@ def plot_multi_case_results(
     plt.close(fig)
 
 
+def plot_multi_case_results_overlay(
+    cases_data: list[dict],
+    output_path: Path,
+    figsize: tuple[float, float] = (8, 5),
+    ylim: tuple[float, float] | None = None,
+) -> None:
+    """
+    複数ケースの理論 vs 予測を1枚のグラフに重ねて描画する.
+    ケースごとに色を分け、各ケースの theory（線）と kernel 予測（マーカー）を同じ色で表示する.
+    """
+    if plt is None:
+        raise ImportError("matplotlib が必要です")
+    if not cases_data:
+        return
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=figsize)
+    # ケース数に応じた色（理論線・予測点をケースごとに同一色で区別）
+    base = list(plt.cm.tab10.colors) if hasattr(plt.cm, "tab10") else list(plt.rcParams["axes.prop_cycle"].by_key().get("color", ["C0", "C1", "C2", "C3", "C4"]))
+    while len(base) < len(cases_data) and hasattr(plt.cm, "tab20"):
+        base.extend(plt.cm.tab20.colors)
+    colors = (base * (1 + len(cases_data) // max(1, len(base))))[: len(cases_data)]
+    for idx, case_dict in enumerate(cases_data):
+        case_id = case_dict.get("case_id", f"case_{idx}")
+        desc = case_dict.get("description") or case_id
+        disp = case_dict.get("displacement_mm") or []
+        theory = case_dict.get("theory_shear_strain") or []
+        by_kernel = case_dict.get("predicted_by_kernel") or {}
+        color = colors[idx % len(colors)]
+        n_pts = len(disp)
+        ax.plot(
+            disp,
+            [t * 100 for t in theory],
+            "-",
+            color=color,
+            linewidth=2,
+            label=f"Theory ({desc})",
+        )
+        for ki, (kname, pred) in enumerate(by_kernel.items()):
+            p = (pred[:n_pts] if hasattr(pred, "__getitem__") else []) or []
+            if not p:
+                continue
+            style, size = _PLOT_STYLES[ki % len(_PLOT_STYLES)]
+            ax.plot(
+                disp[: len(p)],
+                [x * 100 for x in p],
+                marker=style,
+                markersize=size,
+                linestyle="",
+                color=color,
+                label=f"{desc} {kname}",
+            )
+    ax.set_xlabel("Shear displacement (mm)")
+    ax.set_ylabel("Shear strain (%)")
+    if ylim is not None and len(ylim) == 2:
+        ax.set_ylim(ylim[0], ylim[1])
+    ax.legend(loc="best", fontsize=7)
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
 def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None:
     """
     metrics.csv のカーネル別指標を比較図化する（どれがよいか一目で分かるようにする）.

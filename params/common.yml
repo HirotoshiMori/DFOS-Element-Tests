@@ -2,18 +2,31 @@
 # 平滑化・換算・グラフの共通設定
 
 smoothing:
-  # 窓幅は次のどちらかで指定（両方書いた場合は window_m を優先）
-  # window_m: 8.0          # 実距離 [m]
-  window_interval_ratio: 2.0   # 区間長の倍数（例: 2 = 区間長の2倍）
+  # --- 窓幅（どちらか一方を指定。両方書いた場合は window_m を優先）---
+  window_m: 4.0
+  #   窓幅を実距離 [m] で指定。区間中央を中心にこの幅の窓で平滑化する。
+  #   位置列のサンプリング間隔から点数に換算し、奇数長・中央揃えの rolling で適用する。
+  #   窓が区間より大きい場合は区間を両側に拡張して読み込む（expand_window_m）。
+  # window_interval_ratio: 2.0
+  #   窓幅を解析区間長（end_m - start_m）の倍数で指定。2.0 = 区間長の2倍。
+  #   ケースごとに区間長が違うとき、区間に対する相対的な窓サイズを揃えられる。
+
   default_kernel: gaussian
-  kernels_to_evaluate:    # 評価対象の平滑化手法
-    - median
-    - moving_average
-    - gaussian
-    - triangular
-    - epanechnikov
-    - hann
-  gaussian_sigma_ratio: 0.25   # 窓幅に対するσの比率（未指定時用）
+  #   代表値算出のデフォルトで使うカーネル名（主に内部参照用。評価は kernels_to_evaluate で行う）。
+
+  kernels_to_evaluate:
+  #   理論値との比較で評価する平滑化手法の一覧。区間中央付近の「一窓」の代表値を各カーネルで算出し、
+  #   point（区間中央の1点そのまま）とともに RMSE 等を比較する。
+    - median          # 中央値。外れ値に強い。
+    - moving_average  # 単純移動平均（一様重み）。
+    - gaussian        # ガウス重み付き移動平均。σ は gaussian_sigma_ratio で制御。
+    # - triangular      # 三角重み（中心で最大、端で0）。
+    # - epanechnikov    # Epanechnikov カーネル（0.75*(1-u²), u∈[-1,1]）。滑らかで有限台。
+    # - hann            # Hann（ raised cosine ）窓。端が0で滑らかに減衰。
+
+  gaussian_sigma_ratio: 0.25
+  #   Gaussian カーネルの標準偏差 σ = 窓幅（点数）× この比率。0.25 なら窓幅の 1/4。
+  #   小さいほど重みが中心に集中（鋭い）、大きいほど平滑化が強くなる。
 
 conversion:
   # 伸縮ひずみ ε → せん断ひずみ γ_s（ε の正負で式を切替）

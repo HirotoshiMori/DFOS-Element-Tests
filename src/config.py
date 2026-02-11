@@ -420,8 +420,14 @@ def load_compare_config(
         description = data.get("description")
     if not cases:
         raise ValidationError(f"compare YAML に cases がありません: {path}")
+    # グラフ化する kernel のリスト。未指定時は None（呼び出し側で common.yml の kernels_to_evaluate を使用）
+    raw_kernels = g.get("kernels") if groups else data.get("kernels")
+    kernels: list[str] | None = None
+    if raw_kernels is not None and isinstance(raw_kernels, list):
+        kernels = [str(k) for k in raw_kernels]
     return {
         "cases": [str(c) for c in cases],
         "output_subdir": str(output_subdir) if output_subdir else None,
         "description": str(description) if description else None,
+        "kernels": kernels,
     }

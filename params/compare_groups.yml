@@ -1,4 +1,5 @@
 # 複数ケース比較の定義（groups で複数パターンを管理）
+# kernels: グラフ化するカーネルを指定（省略時は common.yml の kernels_to_evaluate を使用）
 description: "複数ケース比較の定義"
 
 groups:
@@ -6,8 +7,10 @@ groups:
     cases: [EF-4m-H, EF-4m-V]
     output_subdir: "compare_H-V"
     description: "水平方向と垂直方向の比較（2ケース比較）"
+    # kernels: [point, gaussian, median]   # 省略時は common.yml の kernel を使用
 
   - id: compare_2m_4m
     cases: [EF-2m-H, EF-4m-H]
     output_subdir: "compare_2m-4m"
     description: "2m と 4m の比較（2ケース比較）"
+    kernels: [point]
