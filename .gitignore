@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# CI / 開発用ドキュメント
+.github/
+
+# Test / coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+.tox/
+.hypothesis/
+
+# Sphinx
+docs/_build/
+
+# Data (case-specific, often large)
+data/
+
+# Output
+output/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / ローカル設定
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo
+*~
+
+# Local / secrets (optional: コミットしたい場合は .env.example のみ残す)
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+*.bak
+*.orig

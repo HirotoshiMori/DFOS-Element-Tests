@@ -1,0 +1,31 @@
+# 共通パラメータ（params/common.yml）
+# 平滑化・換算・グラフの共通設定
+
+smoothing:
+  # 窓幅は次のどちらかで指定（両方書いた場合は window_m を優先）
+  # window_m: 8.0          # 実距離 [m]
+  window_interval_ratio: 2.0   # 区間長の倍数（例: 2 = 区間長の2倍）
+  default_kernel: gaussian
+  kernels_to_evaluate:    # 評価対象の平滑化手法
+    - median
+    - moving_average
+    - gaussian
+    - triangular
+    - epanechnikov
+    - hann
+  gaussian_sigma_ratio: 0.25   # 窓幅に対するσの比率（未指定時用）
+
+conversion:
+  # 伸縮ひずみ ε → せん断ひずみ γ_s（ε の正負で式を切替）
+  #   ε ≥ 0: γ_s = √((ε+1)² − 1)
+  #   ε < 0: γ_s = √(1 − (ε+1)²)
+  formula: geometric
+
+plot:
+  aspect_ratio: 1.5
+  font_size: 10
+  legend_location: upper left
+  dpi: 300
+  figure_size: [8, 5]     # [width, height] inches
+  multi_case_shared_yscale: true   # 比較図(result.png)で全サブプロットの縦軸スケールを揃える
+  ylim: [0, 5.0]       # 理論 vs 予測グラフの縦軸範囲 [min, max]（単位は %）。省略時は自動

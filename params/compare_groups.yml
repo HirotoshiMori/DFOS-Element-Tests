@@ -1,0 +1,13 @@
+# 複数ケース比較の定義（groups で複数パターンを管理）
+description: "複数ケース比較の定義"
+
+groups:
+  - id: compare_H_V
+    cases: [EF-4m-H, EF-4m-V]
+    output_subdir: "compare_H-V"
+    description: "水平方向と垂直方向の比較（2ケース比較）"
+
+  - id: compare_2m_4m
+    cases: [EF-2m-H, EF-4m-H]
+    output_subdir: "compare_2m-4m"
+    description: "2m と 4m の比較（2ケース比較）"

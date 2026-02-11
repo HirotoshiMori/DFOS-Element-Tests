@@ -1,0 +1,18 @@
+# DFOS-Element-tests dependencies (Python 3.12)
+# venv に pip がない場合（例: uv venv で作成）は先に: python -m ensurepip
+pip>=24.0
+numpy>=1.26.0
+pandas>=2.0.0
+matplotlib>=3.8.0
+scipy>=1.11.0
+pyyaml>=6.0
+tqdm>=4.66.0
+
+# Development
+pytest>=7.4.0
+pytest-cov>=4.1.0
+mypy>=1.5.0
+ruff>=0.1.0
+black>=23.0.0
+isort>=5.12.0
+ipykernel>=6.0.0

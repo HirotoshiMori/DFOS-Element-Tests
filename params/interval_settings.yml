@@ -1,0 +1,29 @@
+# 区間指定: データファイル名 (meas_type, length, pressure, direction) に応じた start_m / end_m
+# キー: "meas_type_length_pressure_direction"（例: EF_4m_Null_H）
+#   meas_type: Single, DF, SDF, EF など
+#   length:    2m, 4m など
+#   pressure:  Null, 5kPa, 10kPa, 20kPa など（省略時は Null）
+#   direction: H, V など
+# ファイル名が "EF_4m_H.csv" のときは pressure を Null として "EF_4m_Null_H" で参照
+# データファイル名の区切りは - でも _ でも OK（EF-4m-H.csv も EF_4m_H.csv も同じキーで解決）
+
+intervals:
+  Single_1m_Null_H: { start_m: 11.4, end_m: 12.4 }
+  Single_2m_Null_H: { start_m: 10.9, end_m: 12.9 }
+  Single_4m_Null_H: { start_m: 9.9, end_m: 13.9 }
+  Single_1m_Null_H_B: { start_m: 11.4, end_m: 12.4 }
+  Single_2m_Null_H_B: { start_m: 10.9, end_m: 12.9 }
+  Single_4m_Null_H_B: { start_m: 9.9, end_m: 13.9 }
+
+  EF_2m_Null_H: { start_m: 9.78, end_m: 11.78 }
+  EF_2m_Null_V: { start_m: 9.78, end_m: 11.78 }
+  EF_4m_Null_H: { start_m: 8.78, end_m: 12.78 }
+  EF_4m_Null_V: { start_m: 8.78, end_m: 12.78 }
+
+  SDF_2m_5kPa_V: { start_m: 14.00, end_m: 16.00 }
+  SDF_2m_20kPa_V: { start_m: 14.00, end_m: 16.00 }
+  SDF_4m_5kPa_V: { start_m: 13.00, end_m: 17.00 }
+  SDF_4m_20kPa_V: { start_m: 13.00, end_m: 17.00 }
+
+  DF_2m_Null_V: { start_m: 14.00, end_m: 16.00 }
+  DF_4m_Null_V: { start_m: 13.00, end_m: 17.00 }

@@ -1,0 +1,9 @@
+# Colab / ノートブック実行用（最小限）
+# ローカルで venv に pip がない場合は先に: python -m ensurepip
+pip>=24.0
+numpy>=1.26.0
+pandas>=2.0.0
+matplotlib>=3.8.0
+scipy>=1.11.0
+pyyaml>=6.0
+tqdm>=4.66.0
