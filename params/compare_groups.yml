@@ -1,5 +1,16 @@
-# 複数ケース比較の定義（groups で複数パターンを管理）
-# kernels: グラフ化するカーネルを指定（省略時は common.yml の kernels_to_evaluate を使用）
+# =============================================================================
+# compare_groups.yml — 複数ケース比較の定義（どのケースを1枚の比較図にするか）
+# =============================================================================
+# 役割: 「2m と 4m を比べる」「水平と垂直を比べる」など、よく使う組み合わせをグループで定義する。
+# 実行例: python -m src.cli compare --config params/compare_groups.yml --group-id compare_2m_4m
+# 結果は output/<output_subdir>/ に result.png, comparison.png などが出力される。
+#
+# 各グループの項目:
+#   id: グループ識別子（--group-id で指定する名前）
+#   cases: 比較するケースの id のリスト（case_list.yml の id と対応）
+#   output_subdir: 結果フォルダ名
+#   description: 比較の説明（レポート用メモ）
+#   kernels: （省略可）グラフに出すカーネルをここだけで指定。省略時は common.yml の kernels_to_evaluate と include_point に従う
 description: "複数ケース比較の定義"
 
 groups:
@@ -7,7 +18,7 @@ groups:
     cases: [EF-4m-H, EF-4m-V]
     output_subdir: "compare_H-V"
     description: "水平方向と垂直方向の比較（2ケース比較）"
-    # kernels: [point, gaussian, median]   # 省略時は common.yml の kernel を使用
+    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
 
   - id: compare_2m_4m
     cases: [EF-2m-H, EF-4m-H]

@@ -36,6 +36,7 @@ class CommonConfig:
     window_interval_ratio: float | None  # 区間長の倍数。None のときは window_m を使用
     default_kernel: str
     kernels_to_evaluate: list[str]
+    include_point: bool  # true のとき区間中央の1点（平滑化なし）も評価・グラフに含める
     gaussian_sigma_ratio: float
     figure_dpi: int
     figure_size: tuple[float, float]
@@ -82,11 +83,13 @@ class CommonConfig:
             window_m = float(sm.get("window_m", DEFAULT_WINDOW_M))
             window_interval_ratio = None
 
+        include_point = bool(sm.get("include_point", True))
         return cls(
             window_m=window_m,
             window_interval_ratio=window_interval_ratio,
             default_kernel=str(sm.get("default_kernel", "gaussian")),
             kernels_to_evaluate=kernels,
+            include_point=include_point,
             gaussian_sigma_ratio=float(sm.get("gaussian_sigma_ratio", 0.25)),
             figure_dpi=int(plot_raw.get("dpi", DEFAULT_DPI)),
             figure_size=fig_size,

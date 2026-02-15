@@ -1,5 +1,16 @@
-# 一括実行用ケース一覧（run --case all または run --case id1 id2 ...）
-# id のみ指定で data_file: id.csv, output_subdir: id に自動設定。必要なら description 等を追加。
+# =============================================================================
+# case_list.yml — 一括実行するケースの一覧
+# =============================================================================
+# 役割: run で「全ケース」または「指定したケースだけ」実行するとき、どのケースがあるかを定義する。
+#
+# 実行例:
+#   python -m src.cli run  または  python -m src.cli run --case all  → この一覧の id がすべて実行される
+#   python -m src.cli run --case DF-4m-V EF-2m-H  → 指定した id だけ実行
+#
+# 各ケースの項目:
+#   id: ケース識別子。通常はデータファイル名の拡張子を除いたもの（例: DF-4m-V → data/DF-4m-V.csv）
+#   description: グラフのタイトル・凡例に表示する文言。レポートで「どの条件か」が分かるように書く
+#   data_file / output_subdir: 省略時は id から自動（data_file=id.csv, output_subdir=id）。必要なら上書き可
 
 cases:
   - id: Single-1m-H

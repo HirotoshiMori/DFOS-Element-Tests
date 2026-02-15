@@ -1,11 +1,16 @@
-# 区間指定: データファイル名 (meas_type, length, pressure, direction) に応じた start_m / end_m
-# キー: "meas_type_length_pressure_direction"（例: EF_4m_Null_H）
+# =============================================================================
+# interval_settings.yml — 解析区間の一覧（ファイル種類ごとの start_m ～ end_m [m]）
+# =============================================================================
+# 役割: データファイルの「種類」ごとに、解析に使う位置範囲を一覧で持っておく。
+# case_list.yml やケース YAML で区間をファイル名から決めるときに参照される。
+#
+# キーの例: "測定タイプ_長さ_圧力_方向" → EF_4m_Null_H
 #   meas_type: Single, DF, SDF, EF など
 #   length:    2m, 4m など
-#   pressure:  Null, 5kPa, 10kPa, 20kPa など（省略時は Null）
+#   pressure:  Null, 5kPa, 10kPa など（省略時は Null）
 #   direction: H, V など
-# ファイル名が "EF_4m_H.csv" のときは pressure を Null として "EF_4m_Null_H" で参照
-# データファイル名の区切りは - でも _ でも OK（EF-4m-H.csv も EF_4m_H.csv も同じキーで解決）
+# ファイル名が EF_4m_H.csv のときは pressure を Null として EF_4m_Null_H で参照。
+# 区切りは - でも _ でも OK（EF-4m-H.csv も EF_4m_H.csv も同じキーで解決）。
 
 intervals:
   Single_1m_Null_H: { start_m: 11.4, end_m: 12.4 }

@@ -122,7 +122,7 @@ def compute_case_pipeline(config: Config, data_dir: Path, case_name: str) -> Cas
         "window_end_m": center_position_m + half,
     }
 
-    kernels = ["point"] + list(config.common.kernels_to_evaluate)
+    kernels = (["point"] + list(config.common.kernels_to_evaluate)) if config.common.include_point else list(config.common.kernels_to_evaluate)
     predicted_by_kernel: dict[str, list[float]] = {}
     for k in kernels:
         if k == "point":
@@ -514,7 +514,8 @@ def run_compare(
     if kernels_to_plot is None:
         sm = common_data.get("smoothing") or {}
         ke = sm.get("kernels_to_evaluate") or []
-        kernels_to_plot = ["point"] + [str(k) for k in ke]
+        include_point = bool(sm.get("include_point", True))
+        kernels_to_plot = (["point"] + [str(k) for k in ke]) if include_point else [str(k) for k in ke]
     if kernels_to_plot:
         for d in cases_data:
             by_k = d.get("predicted_by_kernel") or {}

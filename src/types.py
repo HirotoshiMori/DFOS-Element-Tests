@@ -19,6 +19,7 @@ class SmoothingConfig(TypedDict, total=False):
     window_interval_ratio: float
     default_kernel: str
     kernels_to_evaluate: list[str]
+    include_point: bool  # true のとき区間中央の1点（平滑化なし）も評価・グラフに含める
     gaussian_sigma_ratio: float
 
 
