@@ -67,6 +67,55 @@ _PLOT_STYLES = [
 ]
 
 
+def _get_figsize(plot_cfg: dict | None, default: tuple[float, float] = (8, 5)) -> tuple[float, float]:
+    """plot_config から figure_size を取得。無効なら default."""
+    if not plot_cfg or "figure_size" not in plot_cfg:
+        return default
+    raw = plot_cfg["figure_size"]
+    if isinstance(raw, (list, tuple)) and len(raw) >= 2:
+        return (float(raw[0]), float(raw[1]))
+    return default
+
+
+def _get_dpi(plot_cfg: dict | None, default: int = 150) -> int:
+    """plot_config から dpi を取得。無効なら default."""
+    if not plot_cfg or "dpi" not in plot_cfg:
+        return default
+    try:
+        return int(plot_cfg["dpi"])
+    except (TypeError, ValueError):
+        return default
+
+
+def _get_fontsize(plot_cfg: dict | None, key: str, default: int) -> int:
+    """plot_config からフォントサイズを取得。key は font_axis_label, font_title, font_legend。無ければ font_size、それも無ければ default."""
+    if not plot_cfg:
+        return default
+    v = plot_cfg.get(key)
+    if v is not None:
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            pass
+    v = plot_cfg.get("font_size")
+    if v is not None:
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            pass
+    return default
+
+
+def _get_line_width(plot_cfg: dict | None, default: float = 2.0) -> float:
+    """plot_config から line_width を取得。無効なら default."""
+    if not plot_cfg or "line_width" not in plot_cfg:
+        return default
+    try:
+        return float(plot_cfg["line_width"])
+    except (TypeError, ValueError):
+        return default
+
+
 def plot_case_result(
     displacement_mm: list[float],
     theory_shear_strain: list[float],
@@ -75,6 +124,7 @@ def plot_case_result(
     output_path: Path | None = None,
     title: str = "Theory vs Predicted",
     ylim: tuple[float, float] | None = None,
+    plot_config: dict | None = None,
 ) -> None:
     """
     Plot theoretical (line) and predicted (points) shear strain for a single case.
@@ -85,13 +135,15 @@ def plot_case_result(
         raise ImportError("matplotlib が必要です")
     if output_path is not None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(7, 4))
+    figsize = _get_figsize(plot_config, (7, 4))
+    lw = _get_line_width(plot_config)
+    fig, ax = plt.subplots(figsize=figsize)
     ax.plot(
         displacement_mm,
         [t * 100 for t in theory_shear_strain],
         "k-",
         label="Theory",
-        linewidth=2,
+        linewidth=lw,
     )
     n = len(displacement_mm)
     if predicted_by_kernel:
@@ -118,16 +170,19 @@ def plot_case_result(
             linestyle="",
             label="Predicted (mean)",
         )
-    ax.set_xlabel("Shear displacement (mm)")
-    ax.set_ylabel("Shear strain (%)")
+    fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
+    fs_title = _get_fontsize(plot_config, "font_title", 10)
+    fs_legend = _get_fontsize(plot_config, "font_legend", 8)
+    ax.set_xlabel("Shear displacement (mm)", fontsize=fs_axis)
+    ax.set_ylabel("Shear strain (%)", fontsize=fs_axis)
     if ylim is not None and len(ylim) == 2:
         ax.set_ylim(ylim[0], ylim[1])
-    ax.set_title(title)
-    ax.legend(loc="best", fontsize=8)
+    ax.set_title(title, fontsize=fs_title)
+    ax.legend(loc="best", fontsize=fs_legend)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     if output_path is not None:
-        fig.savefig(output_path, dpi=150)
+        fig.savefig(output_path, dpi=_get_dpi(plot_config))
     plt.close(fig)
 
 
@@ -138,6 +193,7 @@ def plot_multi_case_results(
     figsize_per_subplot: tuple[float, float] = (5.5, 3.5),
     shared_yscale: bool = True,
     ylim: tuple[float, float] | None = None,
+    plot_config: dict | None = None,
 ) -> None:
     """
     複数ケースの理論 vs 予測をサブプロットで1枚にまとめる.
@@ -151,14 +207,22 @@ def plot_multi_case_results(
     if not cases_data:
         return
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    base_figsize = _get_figsize(plot_config, (8, 5))
+    # figure_size をサブプロット数で分割する代わりに、1サブプロットあたりのサイズとして利用可能な比で算出
+    sp_w = figsize_per_subplot[0] if not plot_config or "figure_size" not in plot_config else base_figsize[0] / ncols
+    sp_h = figsize_per_subplot[1] if not plot_config or "figure_size" not in plot_config else base_figsize[1] / max(1, (len(cases_data) + ncols - 1) // ncols)
     n = len(cases_data)
     nrows = (n + ncols - 1) // ncols
     fig, axes = plt.subplots(
         nrows, ncols,
-        figsize=(figsize_per_subplot[0] * ncols, figsize_per_subplot[1] * nrows),
+        figsize=(sp_w * ncols, sp_h * nrows),
         squeeze=False,
         sharey=shared_yscale,
     )
+    lw = _get_line_width(plot_config)
+    fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
+    fs_title = _get_fontsize(plot_config, "font_title", 10)
+    fs_legend = _get_fontsize(plot_config, "font_legend", 6)
     axes_flat = axes.ravel()
     for idx, case_dict in enumerate(cases_data):
         ax = axes_flat[idx]
@@ -166,7 +230,7 @@ def plot_multi_case_results(
         disp = case_dict.get("displacement_mm") or []
         theory = case_dict.get("theory_shear_strain") or []
         by_kernel = case_dict.get("predicted_by_kernel") or {}
-        ax.plot(disp, [t * 100 for t in theory], "k-", label="Theory", linewidth=2)
+        ax.plot(disp, [t * 100 for t in theory], "k-", label="Theory", linewidth=lw)
         n_pts = len(disp)
         for i, (kname, pred) in enumerate(by_kernel.items()):
             p = (pred[:n_pts] if hasattr(pred, "__getitem__") else []) or []
@@ -181,18 +245,18 @@ def plot_multi_case_results(
                 linestyle="",
                 label=kname,
             )
-        ax.set_xlabel("Shear displacement (mm)")
-        ax.set_ylabel("Shear strain (%)")
+        ax.set_xlabel("Shear displacement (mm)", fontsize=fs_axis)
+        ax.set_ylabel("Shear strain (%)", fontsize=fs_axis)
         if ylim is not None and len(ylim) == 2:
             ax.set_ylim(ylim[0], ylim[1])
         title = case_dict.get("description") or str(case_id)
-        ax.set_title(title)
-        ax.legend(loc="best", fontsize=6)
+        ax.set_title(title, fontsize=fs_title)
+        ax.legend(loc="best", fontsize=fs_legend)
         ax.grid(True, alpha=0.3)
     for j in range(n, len(axes_flat)):
         axes_flat[j].set_visible(False)
     fig.tight_layout()
-    fig.savefig(output_path, dpi=150)
+    fig.savefig(output_path, dpi=_get_dpi(plot_config))
     plt.close(fig)
 
 
@@ -201,6 +265,7 @@ def plot_multi_case_results_overlay(
     output_path: Path,
     figsize: tuple[float, float] = (8, 5),
     ylim: tuple[float, float] | None = None,
+    plot_config: dict | None = None,
 ) -> None:
     """
     複数ケースの理論 vs 予測を1枚のグラフに重ねて描画する.
@@ -211,6 +276,8 @@ def plot_multi_case_results_overlay(
     if not cases_data:
         return
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    figsize = _get_figsize(plot_config, figsize)
+    lw = _get_line_width(plot_config)
     fig, ax = plt.subplots(figsize=figsize)
     # ケース数に応じた色（理論線・予測点をケースごとに同一色で区別）
     base = list(plt.cm.tab10.colors) if hasattr(plt.cm, "tab10") else list(plt.rcParams["axes.prop_cycle"].by_key().get("color", ["C0", "C1", "C2", "C3", "C4"]))
@@ -230,7 +297,7 @@ def plot_multi_case_results_overlay(
             [t * 100 for t in theory],
             "-",
             color=color,
-            linewidth=2,
+            linewidth=lw,
             label=f"Theory ({desc})",
         )
         for ki, (kname, pred) in enumerate(by_kernel.items()):
@@ -247,18 +314,21 @@ def plot_multi_case_results_overlay(
                 color=color,
                 label=f"{desc} {kname}",
             )
-    ax.set_xlabel("Shear displacement (mm)")
-    ax.set_ylabel("Shear strain (%)")
+    fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
+    fs_title = _get_fontsize(plot_config, "font_title", 10)
+    fs_legend = _get_fontsize(plot_config, "font_legend", 7)
+    ax.set_xlabel("Shear displacement (mm)", fontsize=fs_axis)
+    ax.set_ylabel("Shear strain (%)", fontsize=fs_axis)
     if ylim is not None and len(ylim) == 2:
         ax.set_ylim(ylim[0], ylim[1])
-    ax.legend(loc="best", fontsize=7)
+    ax.legend(loc="best", fontsize=fs_legend)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    fig.savefig(output_path, dpi=150)
+    fig.savefig(output_path, dpi=_get_dpi(plot_config))
     plt.close(fig)
 
 
-def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None:
+def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path, plot_config: dict | None = None) -> None:
     """
     metrics.csv のカーネル別指標を比較図化する（どれがよいか一目で分かるようにする）.
     RMSE / max_error / mean_error は小さいほどよい、correlation は大きいほどよい。
@@ -266,10 +336,13 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None
     if plt is None:
         raise ImportError("matplotlib が必要です")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    dpi = _get_dpi(plot_config)
+    fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
+    fs_title = _get_fontsize(plot_config, "font_title", 10)
     if metrics_df.empty or "kernel" not in metrics_df.columns:
         fig, ax = plt.subplots()
-        ax.set_title("Metrics comparison (no data)")
-        fig.savefig(output_path, dpi=150)
+        ax.set_title("Metrics comparison (no data)", fontsize=fs_title)
+        fig.savefig(output_path, dpi=dpi)
         plt.close(fig)
         return
 
@@ -278,8 +351,8 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None
     if n == 0:
         return
     x = range(n)
-
-    fig, axes = plt.subplots(2, 2, figsize=(9, 7))
+    figsize = _get_figsize(plot_config, (9, 7))
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
 
     # RMSE (lower is better)
     ax = axes[0, 0]
@@ -287,9 +360,9 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None
     colors = ["#2ecc71" if v == min(vals) else "steelblue" for v in vals]
     ax.bar(x, vals, color=colors, edgecolor="black")
     ax.set_xticks(x)
-    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=8)
-    ax.set_ylabel("RMSE")
-    ax.set_title("RMSE (lower is better)")
+    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=fs_axis)
+    ax.set_ylabel("RMSE", fontsize=fs_axis)
+    ax.set_title("RMSE (lower is better)", fontsize=fs_title)
     ax.grid(True, alpha=0.3, axis="y")
 
     # Max error (lower is better)
@@ -298,9 +371,9 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None
     colors = ["#2ecc71" if v == min(vals) else "steelblue" for v in vals]
     ax.bar(x, vals, color=colors, edgecolor="black")
     ax.set_xticks(x)
-    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=8)
-    ax.set_ylabel("Max error")
-    ax.set_title("Max error (lower is better)")
+    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=fs_axis)
+    ax.set_ylabel("Max error", fontsize=fs_axis)
+    ax.set_title("Max error (lower is better)", fontsize=fs_title)
     ax.grid(True, alpha=0.3, axis="y")
 
     # Mean error (lower abs is better; here show as-is)
@@ -310,9 +383,9 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None
     colors = ["#2ecc71" if i == best_idx else "steelblue" for i in range(n)]
     ax.bar(x, vals, color=colors, edgecolor="black")
     ax.set_xticks(x)
-    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=8)
-    ax.set_ylabel("Mean error")
-    ax.set_title("Mean error (|smaller| is better)")
+    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=fs_axis)
+    ax.set_ylabel("Mean error", fontsize=fs_axis)
+    ax.set_title("Mean error (|smaller| is better)", fontsize=fs_title)
     ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
     ax.grid(True, alpha=0.3, axis="y")
 
@@ -322,17 +395,17 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path) -> None
     colors = ["#2ecc71" if v == max(vals) else "steelblue" for v in vals]
     ax.bar(x, vals, color=colors, edgecolor="black")
     ax.set_xticks(x)
-    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=8)
-    ax.set_ylabel("Correlation")
-    ax.set_title("Correlation (higher is better)")
+    ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=fs_axis)
+    ax.set_ylabel("Correlation", fontsize=fs_axis)
+    ax.set_title("Correlation (higher is better)", fontsize=fs_title)
     ax.grid(True, alpha=0.3, axis="y")
 
     fig.tight_layout()
-    fig.savefig(output_path, dpi=150)
+    fig.savefig(output_path, dpi=dpi)
     plt.close(fig)
 
 
-def plot_comparison(results: pd.DataFrame, output_path: Path) -> None:
+def plot_comparison(results: pd.DataFrame, output_path: Path, plot_config: dict | None = None) -> None:
     """
     ケース間比較グラフを作成する.
 
@@ -341,11 +414,15 @@ def plot_comparison(results: pd.DataFrame, output_path: Path) -> None:
     if plt is None:
         raise ImportError("matplotlib が必要です")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    dpi = _get_dpi(plot_config)
+    fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
+    fs_title = _get_fontsize(plot_config, "font_title", 10)
+    fs_legend = _get_fontsize(plot_config, "font_legend", 7)
 
     if results.empty or "rmse" not in results.columns:
         fig, ax = plt.subplots()
-        ax.set_title("Comparison (no data)")
-        fig.savefig(output_path, dpi=150)
+        ax.set_title("Comparison (no data)", fontsize=fs_title)
+        fig.savefig(output_path, dpi=dpi)
         plt.close(fig)
         return
 
@@ -359,13 +436,14 @@ def plot_comparison(results: pd.DataFrame, output_path: Path) -> None:
         labels = results["case_id"].astype(str).tolist()
     else:
         labels = results.index.astype(str).tolist()
-    fig, ax = plt.subplots(figsize=(max(8, len(labels) * 0.4), 4))
+    figsize = _get_figsize(plot_config, (max(8, len(labels) * 0.4), 4))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.bar(range(len(results)), results["rmse"], color="steelblue", edgecolor="black")
     ax.set_xticks(range(len(results)))
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=7)
-    ax.set_ylabel("RMSE")
-    ax.set_xlabel("Case" + (" / Kernel" if "kernel" in results.columns else ""))
-    ax.set_title("RMSE by case" + (" and kernel" if "kernel" in results.columns else ""))
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=fs_legend)
+    ax.set_ylabel("RMSE", fontsize=fs_axis)
+    ax.set_xlabel("Case" + (" / Kernel" if "kernel" in results.columns else ""), fontsize=fs_axis)
+    ax.set_title("RMSE by case" + (" and kernel" if "kernel" in results.columns else ""), fontsize=fs_title)
     fig.tight_layout()
-    fig.savefig(output_path, dpi=150)
+    fig.savefig(output_path, dpi=dpi)
     plt.close(fig)

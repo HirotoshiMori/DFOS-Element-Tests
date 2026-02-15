@@ -22,8 +22,8 @@ coverage.xml
 .tox/
 .hypothesis/
 
-# Sphinx
-docs/_build/
+# Sphinx / ドキュメント（本体は残すがリポジトリでは追跡しない）
+docs/
 
 # Data (case-specific, often large)
 data/

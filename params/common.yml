@@ -35,10 +35,20 @@ conversion:
   formula: geometric
 
 plot:
-  aspect_ratio: 1.5
-  font_size: 10
+  # 図のサイズ・解像度
+  figure_size: [8, 5]     # [幅, 高さ] インチ。縦横比はこれで決まる
+  aspect_ratio: 1.5       # figure_size 未指定時の参考
+  dpi: 300                # 保存時の解像度（dots per inch）
+
+  # フォント（pt）。省略時は font_size を使用
+  font_size: 10            # 共通デフォルト
+  font_axis_label: 10      # 軸ラベル（xlabel, ylabel）
+  font_title: 12           # タイトル
+  font_legend: 8           # 凡例
+
+  # 線の太さ（理論線・予測線）
+  line_width: 2.0
+
   legend_location: upper left
-  dpi: 300
-  figure_size: [8, 5]     # [width, height] inches
   multi_case_shared_yscale: true   # 比較図(result.png)で全サブプロットの縦軸スケールを揃える
   ylim: [0, 5.0]       # 理論 vs 予測グラフの縦軸範囲 [min, max]（単位は %）。省略時は自動

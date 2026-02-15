@@ -201,6 +201,7 @@ def write_case_outputs(
     case_name: str,
     case_dict: dict | None = None,
     plot_ylim: tuple[float, float] | None = None,
+    plot_config: dict | None = None,
 ) -> None:
     """1 ケース分の出力ファイルを書き出す（center_position, metrics, plot CSV, 図, params_used）。case_path が None のときは case_dict を YAML で保存する。"""
     with open(case_out / "center_position.yml", "w", encoding="utf-8") as f:
@@ -220,7 +221,7 @@ def write_case_outputs(
         metrics_df = metrics_df[["kernel", "rmse", "max_error", "mean_error", "correlation", "elapsed_sec", "case_id"]]
     metrics_df.to_csv(case_out / "metrics.csv", index=False)
     if not metrics_df.empty:
-        plot_metrics_comparison(metrics_df, case_out / "metrics_comparison.png")
+        plot_metrics_comparison(metrics_df, case_out / "metrics_comparison.png", plot_config=plot_config)
 
     if case_result.n_plot > 0 and case_result.predicted_by_kernel:
         plot_df = pd.DataFrame({
@@ -236,6 +237,7 @@ def write_case_outputs(
             output_path=case_out / "result.png",
             title=case_result.description or f"Case {case_result.case_id}: Theory vs Predicted (kernels)",
             ylim=plot_ylim,
+            plot_config=plot_config,
         )
 
 
@@ -334,7 +336,7 @@ def run_single_case(
 
     common_path = config_dir / "common.yml"
     plot_ylim = _parse_plot_ylim(config.common.plot)
-    write_case_outputs(case_out, case_result, common_path, case_path, output_subdir, case_dict=case_dict, plot_ylim=plot_ylim)
+    write_case_outputs(case_out, case_result, common_path, case_path, output_subdir, case_dict=case_dict, plot_ylim=plot_ylim, plot_config=config.common.plot)
     return case_result.metrics_rows
 
 
@@ -416,6 +418,7 @@ def write_compare_outputs(
     metrics_dfs: list[pd.DataFrame],
     shared_yscale: bool = True,
     plot_ylim: tuple[float, float] | None = None,
+    plot_config: dict | None = None,
 ) -> pd.DataFrame | None:
     """比較結果の図と CSV を書き出し、結合した metrics DataFrame を返す。metrics_dfs が空なら None。"""
     if cases_data:
@@ -423,6 +426,7 @@ def write_compare_outputs(
             cases_data,
             out_compare / "result.png",
             ylim=plot_ylim,
+            plot_config=plot_config,
         )
     if not metrics_dfs:
         return None
@@ -432,7 +436,7 @@ def write_compare_outputs(
             metrics_dfs[i] = df.assign(description=cases_data[i]["description"])
     combined = pd.concat(metrics_dfs, ignore_index=True)
     combined.to_csv(out_compare / "metrics_compared.csv", index=False)
-    plot_comparison(combined, out_compare / "comparison.png")
+    plot_comparison(combined, out_compare / "comparison.png", plot_config=plot_config)
     return combined
 
 
@@ -526,6 +530,7 @@ def run_compare(
         out_compare, cases_data, metrics_dfs,
         shared_yscale=shared_yscale,
         plot_ylim=plot_ylim,
+        plot_config=plot_cfg,
     )
     if combined is not None:
         logger.info("比較結果保存: result.png, comparison.png, metrics_compared.csv")
@@ -654,6 +659,14 @@ def main() -> int:
         case_args = args.case if args.case else ["all"]
         run_all = len(case_args) == 0 or (len(case_args) == 1 and str(case_args[0]).strip().lower() == "all")
 
+        def _common_plot_config(c_dir: Path) -> dict:
+            common_yml = c_dir / "common.yml"
+            if not common_yml.exists():
+                return {}
+            with open(common_yml, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            return data.get("plot") or {}
+
         try:
             if run_all:
                 df = run_all_cases(output_dir, config_dir=config_dir, data_dir=data_dir, case_ids=None, verbose=verbose)
@@ -662,7 +675,7 @@ def main() -> int:
                 df.to_csv(summary_path, index=False)
                 print(f"サマリー保存: {summary_path}")
                 if not df.empty and "rmse" in df.columns:
-                    plot_comparison(df, output_dir / "comparison.png")
+                    plot_comparison(df, output_dir / "comparison.png", plot_config=_common_plot_config(config_dir))
                     print(f"比較グラフ保存: {output_dir / 'comparison.png'}")
                 return 0
             if len(case_args) == 1:
@@ -674,7 +687,7 @@ def main() -> int:
                 df.to_csv(summary_path, index=False)
                 print(f"サマリー保存: {summary_path}")
                 if not df.empty and "rmse" in df.columns:
-                    plot_comparison(df, output_dir / "comparison.png")
+                    plot_comparison(df, output_dir / "comparison.png", plot_config=_common_plot_config(config_dir))
                     print(f"比較グラフ保存: {output_dir / 'comparison.png'}")
                 return 0
             # single case

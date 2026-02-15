@@ -33,9 +33,13 @@ class PlotConfig(TypedDict, total=False):
 
     aspect_ratio: float
     font_size: int
+    font_axis_label: int
+    font_title: int
+    font_legend: int
     legend_location: str
     dpi: int
     figure_size: list[float]
+    line_width: float
     multi_case_shared_yscale: bool  # 比較図で全サブプロットの縦軸を揃える
     ylim: list[float]  # 理論 vs 予測グラフの縦軸範囲 [min, max]（%）。省略時は自動
 
