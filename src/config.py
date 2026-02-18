@@ -428,9 +428,14 @@ def load_compare_config(
     kernels: list[str] | None = None
     if raw_kernels is not None and isinstance(raw_kernels, list):
         kernels = [str(k) for k in raw_kernels]
+    # グループごとの smoothing 上書き（window_m または window_interval_ratio など）
+    smoothing = (g.get("smoothing") if groups and isinstance(g, dict) else data.get("smoothing")) or {}
+    if not isinstance(smoothing, dict):
+        smoothing = {}
     return {
         "cases": [str(c) for c in cases],
         "output_subdir": str(output_subdir) if output_subdir else None,
         "description": str(description) if description else None,
         "kernels": kernels,
+        "smoothing": smoothing,
     }

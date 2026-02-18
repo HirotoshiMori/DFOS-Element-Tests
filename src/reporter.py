@@ -88,7 +88,7 @@ def _get_dpi(plot_cfg: dict | None, default: int = 150) -> int:
 
 
 def _get_fontsize(plot_cfg: dict | None, key: str, default: int) -> int:
-    """plot_config からフォントサイズを取得。key は font_axis_label, font_title, font_legend。無ければ font_size、それも無ければ default."""
+    """plot_config からフォントサイズを取得。key は font_axis_label, font_title, font_legend, font_tick_label など。無ければ font_size、それも無ければ default."""
     if not plot_cfg:
         return default
     v = plot_cfg.get(key)
@@ -122,7 +122,7 @@ def plot_case_result(
     predicted_shear_strain: list[float] | None = None,
     predicted_by_kernel: dict[str, list[float]] | None = None,
     output_path: Path | None = None,
-    title: str = "Theory vs Predicted",
+    title: str = "Theory vs Measured",
     ylim: tuple[float, float] | None = None,
     plot_config: dict | None = None,
 ) -> None:
@@ -173,8 +173,10 @@ def plot_case_result(
     fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
     fs_title = _get_fontsize(plot_config, "font_title", 10)
     fs_legend = _get_fontsize(plot_config, "font_legend", 8)
+    fs_tick = _get_fontsize(plot_config, "font_tick_label", 10)
     ax.set_xlabel("Shear displacement (mm)", fontsize=fs_axis)
-    ax.set_ylabel("Shear strain (%)", fontsize=fs_axis)
+    ax.set_ylabel("Engineering shear strain (%)", fontsize=fs_axis)
+    ax.tick_params(axis="both", labelsize=fs_tick)
     if ylim is not None and len(ylim) == 2:
         ax.set_ylim(ylim[0], ylim[1])
     ax.set_title(title, fontsize=fs_title)
@@ -223,6 +225,7 @@ def plot_multi_case_results(
     fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
     fs_title = _get_fontsize(plot_config, "font_title", 10)
     fs_legend = _get_fontsize(plot_config, "font_legend", 6)
+    fs_tick = _get_fontsize(plot_config, "font_tick_label", 10)
     axes_flat = axes.ravel()
     for idx, case_dict in enumerate(cases_data):
         ax = axes_flat[idx]
@@ -246,12 +249,13 @@ def plot_multi_case_results(
                 label=kname,
             )
         ax.set_xlabel("Shear displacement (mm)", fontsize=fs_axis)
-        ax.set_ylabel("Shear strain (%)", fontsize=fs_axis)
+        ax.set_ylabel("Engineering shear strain (%)", fontsize=fs_axis)
         if ylim is not None and len(ylim) == 2:
             ax.set_ylim(ylim[0], ylim[1])
         title = case_dict.get("description") or str(case_id)
         ax.set_title(title, fontsize=fs_title)
         ax.legend(loc="best", fontsize=fs_legend)
+        ax.tick_params(axis="both", labelsize=fs_tick)
         ax.grid(True, alpha=0.3)
     for j in range(n, len(axes_flat)):
         axes_flat[j].set_visible(False)
@@ -266,10 +270,11 @@ def plot_multi_case_results_overlay(
     figsize: tuple[float, float] = (8, 5),
     ylim: tuple[float, float] | None = None,
     plot_config: dict | None = None,
+    window_info: str = "",
 ) -> None:
     """
     複数ケースの理論 vs 予測を1枚のグラフに重ねて描画する.
-    ケースごとに色を分け、各ケースの theory（線）と kernel 予測（マーカー）を同じ色で表示する.
+    理論値は黒線で1本のみ表示し、各ケースの予測（マーカー）はケースごとに色分けする.
     """
     if plt is None:
         raise ImportError("matplotlib が必要です")
@@ -279,31 +284,37 @@ def plot_multi_case_results_overlay(
     figsize = _get_figsize(plot_config, figsize)
     lw = _get_line_width(plot_config)
     fig, ax = plt.subplots(figsize=figsize)
-    # ケース数に応じた色（理論線・予測点をケースごとに同一色で区別）
+    # 理論値は黒線で1本だけ（先頭ケースの理論を使用）
+    first = cases_data[0]
+    disp0 = first.get("displacement_mm") or []
+    theory0 = first.get("theory_shear_strain") or []
+    if disp0 and theory0:
+        ax.plot(
+            disp0,
+            [t * 100 for t in theory0],
+            "k-",
+            linewidth=lw,
+            label="Theory",
+        )
+    # ケース数に応じた色（予測マーカーをケースごとに色分け）
     base = list(plt.cm.tab10.colors) if hasattr(plt.cm, "tab10") else list(plt.rcParams["axes.prop_cycle"].by_key().get("color", ["C0", "C1", "C2", "C3", "C4"]))
     while len(base) < len(cases_data) and hasattr(plt.cm, "tab20"):
         base.extend(plt.cm.tab20.colors)
     colors = (base * (1 + len(cases_data) // max(1, len(base))))[: len(cases_data)]
+    pred_labels: list[str] = []
     for idx, case_dict in enumerate(cases_data):
         case_id = case_dict.get("case_id", f"case_{idx}")
         desc = case_dict.get("description") or case_id
         disp = case_dict.get("displacement_mm") or []
-        theory = case_dict.get("theory_shear_strain") or []
         by_kernel = case_dict.get("predicted_by_kernel") or {}
         color = colors[idx % len(colors)]
         n_pts = len(disp)
-        ax.plot(
-            disp,
-            [t * 100 for t in theory],
-            "-",
-            color=color,
-            linewidth=lw,
-            label=f"Theory ({desc})",
-        )
         for ki, (kname, pred) in enumerate(by_kernel.items()):
             p = (pred[:n_pts] if hasattr(pred, "__getitem__") else []) or []
             if not p:
                 continue
+            lbl = f"{desc} {kname}"
+            pred_labels.append(lbl)
             style, size = _PLOT_STYLES[ki % len(_PLOT_STYLES)]
             ax.plot(
                 disp[: len(p)],
@@ -312,16 +323,75 @@ def plot_multi_case_results_overlay(
                 markersize=size,
                 linestyle="",
                 color=color,
-                label=f"{desc} {kname}",
+                label=lbl,
             )
+    # 凡例の共通部分を求め、タイトルに表示して凡例からは削除（例: 全員 "xxx point" → タイトルに "point"、凡例は "xxx" のみ）
+    title_common = ""
+    legend_suffix = ""
+    if pred_labels:
+        # 最長共通末尾（例: 全員 " point" なら " point"）
+        rev = [s[::-1] for s in pred_labels]
+        i = 0
+        while i < min(len(r) for r in rev) and all(r[i] == rev[0][i] for r in rev):
+            i += 1
+        if i > 0:
+            legend_suffix = (rev[0][:i])[::-1]
+            # 共通末尾がスペース+単語（例: " point"）のときだけタイトルに移す
+            if legend_suffix.startswith(" ") and len(legend_suffix.strip()) > 0:
+                title_common = legend_suffix.strip()
     fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
     fs_title = _get_fontsize(plot_config, "font_title", 10)
     fs_legend = _get_fontsize(plot_config, "font_legend", 7)
+    fs_tick = _get_fontsize(plot_config, "font_tick_label", 10)
     ax.set_xlabel("Shear displacement (mm)", fontsize=fs_axis)
-    ax.set_ylabel("Shear strain (%)", fontsize=fs_axis)
+    ax.set_ylabel("Engineering shear strain (%)", fontsize=fs_axis)
+    ax.tick_params(axis="both", labelsize=fs_tick)
     if ylim is not None and len(ylim) == 2:
         ax.set_ylim(ylim[0], ylim[1])
-    ax.legend(loc="best", fontsize=fs_legend)
+    if title_common or window_info:
+        if title_common:
+            kernel_lower = title_common.strip().lower()
+            # point（"point" または "vertical point" など）のときは窓を使わないので window は出さず、変位方向が分かるようにする
+            if kernel_lower == "point" or kernel_lower.endswith(" point"):
+                descs = " ".join((d.get("description") or d.get("case_id", "")) for d in cases_data).lower()
+                if "horizontal" in descs and "vertical" not in descs:
+                    title_part = "Horizontal point"
+                elif "vertical" in descs and "horizontal" not in descs:
+                    title_part = "Vertical point"
+                else:
+                    title_part = "Vertical point" if "vertical" in kernel_lower else "Horizontal point" if "horizontal" in kernel_lower else title_common
+                title_str = f"Theory vs Measured ({title_part})"
+            else:
+                # moving_average など: title_common にまだ向きが無いときだけ description から付与（既に "Vertical moving average" 等なら重ねない）
+                tc_lower = title_common.strip().lower()
+                if tc_lower.startswith("horizontal ") or tc_lower.startswith("vertical "):
+                    title_prefix = ""
+                else:
+                    descs = " ".join((d.get("description") or d.get("case_id", "")) for d in cases_data).lower()
+                    if "horizontal" in descs and "vertical" not in descs:
+                        title_prefix = "Horizontal "
+                    elif "vertical" in descs and "horizontal" not in descs:
+                        title_prefix = "Vertical "
+                    else:
+                        title_prefix = ""
+                title_str = f"Theory vs Measured ({title_prefix}{title_common}{window_info})"
+        else:
+            title_str = f"Theory vs Measured ({window_info.lstrip(', ')})"
+        ax.set_title(title_str, fontsize=max(1, int(fs_title * 2 / 3)), pad=20)
+    handles, labels = ax.get_legend_handles_labels()
+    if legend_suffix:
+        new_labels = [
+            (lab[: -len(legend_suffix)].strip() if lab != "Theory" and lab.endswith(legend_suffix) else lab)
+            for lab in labels
+        ]
+        # 凡例から "Horizontal" / "Vertical" を削除（タイトルにのみ表示）
+        new_labels = [
+            (l.replace(" Horizontal", "").replace("Horizontal ", "").replace(" Vertical", "").replace("Vertical ", "").strip() if l != "Theory" else l)
+            for l in new_labels
+        ]
+        ax.legend(handles, new_labels, loc="best", fontsize=fs_legend)
+    else:
+        ax.legend(loc="best", fontsize=fs_legend)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     fig.savefig(output_path, dpi=_get_dpi(plot_config))
@@ -339,6 +409,7 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path, plot_co
     dpi = _get_dpi(plot_config)
     fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
     fs_title = _get_fontsize(plot_config, "font_title", 10)
+    fs_tick = _get_fontsize(plot_config, "font_tick_label", 10)
     if metrics_df.empty or "kernel" not in metrics_df.columns:
         fig, ax = plt.subplots()
         ax.set_title("Metrics comparison (no data)", fontsize=fs_title)
@@ -363,6 +434,7 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path, plot_co
     ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=fs_axis)
     ax.set_ylabel("RMSE", fontsize=fs_axis)
     ax.set_title("RMSE (lower is better)", fontsize=fs_title)
+    ax.tick_params(axis="both", labelsize=fs_tick)
     ax.grid(True, alpha=0.3, axis="y")
 
     # Max error (lower is better)
@@ -374,6 +446,7 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path, plot_co
     ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=fs_axis)
     ax.set_ylabel("Max error", fontsize=fs_axis)
     ax.set_title("Max error (lower is better)", fontsize=fs_title)
+    ax.tick_params(axis="both", labelsize=fs_tick)
     ax.grid(True, alpha=0.3, axis="y")
 
     # Mean error (lower abs is better; here show as-is)
@@ -387,6 +460,7 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path, plot_co
     ax.set_ylabel("Mean error", fontsize=fs_axis)
     ax.set_title("Mean error (|smaller| is better)", fontsize=fs_title)
     ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
+    ax.tick_params(axis="both", labelsize=fs_tick)
     ax.grid(True, alpha=0.3, axis="y")
 
     # Correlation (higher is better)
@@ -398,6 +472,7 @@ def plot_metrics_comparison(metrics_df: pd.DataFrame, output_path: Path, plot_co
     ax.set_xticklabels(kernels, rotation=45, ha="right", fontsize=fs_axis)
     ax.set_ylabel("Correlation", fontsize=fs_axis)
     ax.set_title("Correlation (higher is better)", fontsize=fs_title)
+    ax.tick_params(axis="both", labelsize=fs_tick)
     ax.grid(True, alpha=0.3, axis="y")
 
     fig.tight_layout()
@@ -418,6 +493,7 @@ def plot_comparison(results: pd.DataFrame, output_path: Path, plot_config: dict 
     fs_axis = _get_fontsize(plot_config, "font_axis_label", 10)
     fs_title = _get_fontsize(plot_config, "font_title", 10)
     fs_legend = _get_fontsize(plot_config, "font_legend", 7)
+    fs_tick = _get_fontsize(plot_config, "font_tick_label", 10)
 
     if results.empty or "rmse" not in results.columns:
         fig, ax = plt.subplots()
@@ -444,6 +520,7 @@ def plot_comparison(results: pd.DataFrame, output_path: Path, plot_config: dict 
     ax.set_ylabel("RMSE", fontsize=fs_axis)
     ax.set_xlabel("Case" + (" / Kernel" if "kernel" in results.columns else ""), fontsize=fs_axis)
     ax.set_title("RMSE by case" + (" and kernel" if "kernel" in results.columns else ""), fontsize=fs_title)
+    ax.tick_params(axis="both", labelsize=fs_tick)
     fig.tight_layout()
     fig.savefig(output_path, dpi=dpi)
     plt.close(fig)

@@ -37,6 +37,7 @@ class PlotConfig(TypedDict, total=False):
     font_axis_label: int
     font_title: int
     font_legend: int
+    font_tick_label: int  # 軸の目盛り数字（tick labels）のフォントサイズ
     legend_location: str
     dpi: int
     figure_size: list[float]

@@ -14,18 +14,18 @@
 
 cases:
   - id: Single-1m-H
-    description: "EF 1m Horizontal"
+    description: "Single 1m Horizontal"
   - id: Single-2m-H
-    description: "EF 2m Horizontal"
+    description: "Single 2m Horizontal"
   - id: Single-4m-H
-    description: "EF 4m Horizontal"
+    description: "Single 4m Horizontal"
 
   - id: Single-1m-H-B
-    description: "EF 1m Horizontal Brillouin"
+    description: "Single 1m Horizontal Brillouin"
   - id: Single-2m-H-B
-    description: "EF 2m Horizontal Brillouin"
+    description: "Single 2m Horizontal Brillouin"
   - id: Single-4m-H-B
-    description: "EF 4m Horizontal Brillouin"
+    description: "Single 4m Horizontal Brillouin"
 
   - id: DF-2m-V
     description: "DF 2m Vertical"

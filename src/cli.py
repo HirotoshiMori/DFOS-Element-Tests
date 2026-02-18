@@ -14,6 +14,7 @@ import yaml
 from tqdm import tqdm
 
 from src.config import (
+    CommonConfig,
     Config,
     get_case_by_id,
     get_case_description,
@@ -235,7 +236,7 @@ def write_case_outputs(
             case_result.theory_shear_strain[: case_result.n_plot],
             predicted_by_kernel=case_result.predicted_by_kernel,
             output_path=case_out / "result.png",
-            title=case_result.description or f"Case {case_result.case_id}: Theory vs Predicted (kernels)",
+            title=case_result.description or f"Case {case_result.case_id}: Theory vs Measured (kernels)",
             ylim=plot_ylim,
             plot_config=plot_config,
         )
@@ -419,6 +420,7 @@ def write_compare_outputs(
     shared_yscale: bool = True,
     plot_ylim: tuple[float, float] | None = None,
     plot_config: dict | None = None,
+    window_info: str = "",
 ) -> pd.DataFrame | None:
     """比較結果の図と CSV を書き出し、結合した metrics DataFrame を返す。metrics_dfs が空なら None。"""
     if cases_data:
@@ -427,6 +429,7 @@ def write_compare_outputs(
             out_compare / "result.png",
             ylim=plot_ylim,
             plot_config=plot_config,
+            window_info=window_info,
         )
     if not metrics_dfs:
         return None
@@ -483,24 +486,67 @@ def run_compare(
     logger = setup_logger("cli.compare", log_file=log_file, level=level, console=verbose)
     log_environment(logger)
     logger.info("比較開始: %s（計 %d ケース）", ", ".join(case_list), len(case_list))
-    ran_any = False
-    for cid in tqdm(case_list, desc="比較準備（ケース実行・結果収集）"):
-        case_out = output_dir / cid
-        had_results = (
-            (case_out / "shear_strain_for_plot.csv").exists()
-            and (case_out / "metrics.csv").exists()
-        )
-        _ensure_case_results(cid, output_dir, config_dir, data_dir, verbose)
-        if had_results:
-            logger.info("%s: 結果ありのためスキップ", cid)
-        else:
-            logger.info("%s: 実行しました", cid)
-            ran_any = True
-    if not ran_any:
-        logger.info("全ケース結果済みのため、比較のみ実行します。")
-    cases_data, metrics_dfs = collect_compare_data(output_dir, case_list)
-    for d in cases_data:
-        d["description"] = get_case_description(config_dir, d["case_id"])
+
+    group_smoothing = (cfg.get("smoothing") or {}) if compare_config is not None else {}
+    title_smoothing: dict | None = None  # タイトル用の smoothing（グループ指定時はマージ後を表示）
+    if isinstance(group_smoothing, dict) and (
+        group_smoothing.get("window_m") is not None or group_smoothing.get("window_interval_ratio") is not None
+    ):
+        # グループで窓サイズが指定されている場合: common をマージして再計算し、比較用データをメモリで構築
+        common_yml = config_dir / "common.yml"
+        common_data = {}
+        if common_yml.exists():
+            with open(common_yml, encoding="utf-8") as f:
+                common_data = yaml.safe_load(f) or {}
+        merged_smoothing = {**(common_data.get("smoothing") or {}), **group_smoothing}
+        title_smoothing = merged_smoothing
+        common_data_merged = dict(common_data)
+        common_data_merged["smoothing"] = merged_smoothing
+
+        cases_data = []
+        metrics_dfs = []
+        for cid in tqdm(case_list, desc="比較用に再計算（グループ窓設定）"):
+            config, out_subdir, _case_path, _case_dict = _load_case_config(config_dir, cid, data_dir)
+            config.common = CommonConfig.from_dict(common_data_merged)
+            try:
+                case_result = compute_case_pipeline(config, data_dir, out_subdir)
+            except (FileNotFoundError, Exception) as e:
+                raise DataLoadError(f"比較用再計算で失敗 ({cid}): {e}") from e
+            n = case_result.n_plot
+            pred_trunc = {k: (v[:n] if hasattr(v, "__getitem__") else v) for k, v in case_result.predicted_by_kernel.items()}
+            cases_data.append({
+                "case_id": cid,
+                "description": config.case.description or cid,
+                "displacement_mm": case_result.displacement_mm[:n],
+                "theory_shear_strain": case_result.theory_shear_strain[:n],
+                "predicted_by_kernel": pred_trunc,
+            })
+            if case_result.metrics_rows:
+                mdf = pd.DataFrame(case_result.metrics_rows)
+                if "case_id" not in mdf.columns:
+                    mdf["case_id"] = cid
+                metrics_dfs.append(mdf)
+        for d in cases_data:
+            d["description"] = get_case_description(config_dir, d["case_id"])
+    else:
+        ran_any = False
+        for cid in tqdm(case_list, desc="比較準備（ケース実行・結果収集）"):
+            case_out = output_dir / cid
+            had_results = (
+                (case_out / "shear_strain_for_plot.csv").exists()
+                and (case_out / "metrics.csv").exists()
+            )
+            _ensure_case_results(cid, output_dir, config_dir, data_dir, verbose)
+            if had_results:
+                logger.info("%s: 結果ありのためスキップ", cid)
+            else:
+                logger.info("%s: 実行しました", cid)
+                ran_any = True
+        if not ran_any:
+            logger.info("全ケース結果済みのため、比較のみ実行します。")
+        cases_data, metrics_dfs = collect_compare_data(output_dir, case_list)
+        for d in cases_data:
+            d["description"] = get_case_description(config_dir, d["case_id"])
 
     # グラフ化する kernel: compare 設定で指定されていればそれを使い、無ければ common.yml の kernels_to_evaluate
     kernels_to_plot: list[str] | None = None
@@ -527,11 +573,19 @@ def run_compare(
     plot_cfg = common_data.get("plot") or {}
     shared_yscale = bool(plot_cfg.get("multi_case_shared_yscale", True))
     plot_ylim = _parse_plot_ylim(plot_cfg)
+    sm_for_title = title_smoothing if title_smoothing is not None else (common_data.get("smoothing") or {})
+    if sm_for_title.get("window_m") is not None:
+        window_info = f", window {sm_for_title['window_m']} m"
+    elif sm_for_title.get("window_interval_ratio") is not None:
+        window_info = f", window ratio {sm_for_title['window_interval_ratio']}"
+    else:
+        window_info = ""
     combined = write_compare_outputs(
         out_compare, cases_data, metrics_dfs,
         shared_yscale=shared_yscale,
         plot_ylim=plot_ylim,
         plot_config=plot_cfg,
+        window_info=window_info,
     )
     if combined is not None:
         logger.info("比較結果保存: result.png, comparison.png, metrics_compared.csv")
