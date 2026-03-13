@@ -199,3 +199,83 @@ groups:
     kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
     smoothing:
       window_m: 12.0
+
+  - id: compare_2m_moving_average_10m
+    cases: [DF-2m-V, SDF-2m-5kPa-V, SDF-2m-20kPa-V, EF-2m-V, EF-2m-H, Single-2m-H]
+    output_subdir: "compare_2m_moving_average_10m"
+    description: "2mのみ比べる（移動平均窓10m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 10.0
+
+  - id: compare_2m_moving_average_6m
+    cases: [DF-2m-V, SDF-2m-5kPa-V, SDF-2m-20kPa-V, EF-2m-V, EF-2m-H, Single-2m-H]
+    output_subdir: "compare_2m_moving_average_6m"
+    description: "2mのみ比べる（移動平均窓6m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 6.0
+
+  - id: compare_2m_moving_average_2m
+    cases: [DF-2m-V, SDF-2m-5kPa-V, SDF-2m-20kPa-V, EF-2m-V, EF-2m-H, Single-2m-H]
+    output_subdir: "compare_2m_moving_average_2m"
+    description: "2mのみ比べる（移動平均窓2m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 2.0
+
+  - id: compare_4m_moving_average_12m
+    cases: [DF-4m-V, SDF-4m-5kPa-V, SDF-4m-20kPa-V, EF-4m-V, EF-4m-H, Single-4m-H]
+    output_subdir: "compare_4m_moving_average_12m"
+    description: "4mのみ比べる（移動平均窓12m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 12.0
+
+  - id: compare_4m_moving_average_4m
+    cases: [DF-4m-V, SDF-4m-5kPa-V, SDF-4m-20kPa-V, EF-4m-V, EF-4m-H, Single-4m-H]
+    output_subdir: "compare_4m_moving_average_4m"
+    description: "4mのみ比べる（移動平均窓4m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 4.0
+
+  - id: compare_EF_2m_moving_average_10m
+    cases: [EF-2m-V, EF-2m-H]
+    output_subdir: "compare_EF_2m_moving_average_10m"
+    description: "EF_2mのみ比べる（移動平均窓10m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 10.0
+
+  - id: compare_EF_2m_moving_average_6m
+    cases: [EF-2m-V, EF-2m-H]
+    output_subdir: "compare_EF_2m_moving_average_6m"
+    description: "EF_2mのみ比べる（移動平均窓6m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 6.0
+
+  - id: compare_EF_2m_moving_average_2m
+    cases: [EF-2m-V, EF-2m-H]
+    output_subdir: "compare_EF_2m_moving_average_2m"
+    description: "EF_2mのみ比べる（移動平均窓2m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 2.0
+
+  - id: compare_EF_4m_moving_average_12m
+    cases: [EF-4m-V, EF-4m-H]
+    output_subdir: "compare_EF_4m_moving_average_12m"
+    description: "EF_4mのみ比べる（移動平均窓12m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 12.0
+
+  - id: compare_EF_4m_moving_average_4m
+    cases: [EF-4m-V, EF-4m-H]
+    output_subdir: "compare_EF_4m_moving_average_4m"
+    description: "EF_4mのみ比べる（移動平均窓4m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 4.0
