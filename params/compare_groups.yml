@@ -151,3 +151,51 @@ groups:
     kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
     smoothing:
       window_m: 8.0
+
+  - id: compare_H_2m_moving_average_10m
+    cases: [Single-2m-H, Single-2m-H-B, EF-2m-H]
+    output_subdir: "compare_H-only"
+    description: "水平2mのみ比べる（移動平均窓10m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 10.0
+  
+  - id: compare_V_2m_moving_average_10m
+    cases: [DF-2m-V, SDF-2m-5kPa-V, SDF-2m-20kPa-V, EF-2m-V]
+    output_subdir: "compare_V-only"
+    description: "鉛直2mのみ比べる（移動平均窓10m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 10.0
+
+  - id: compare_H_4m_moving_average_12m
+    cases: [Single-4m-H, Single-4m-H-B, EF-4m-H]
+    output_subdir: "compare_H-only"
+    description: "水平4mのみ比べる（移動平均窓12m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 12.0
+  
+  - id: compare_V_4m_moving_average_12m
+    cases: [DF-4m-V, SDF-4m-5kPa-V, SDF-4m-20kPa-V, EF-4m-V]
+    output_subdir: "compare_V-only"
+    description: "鉛直4mのみ比べる（移動平均窓12m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 12.0
+
+  - id: compare_H_2m_moving_average_12m
+    cases: [Single-2m-H, Single-2m-H-B, EF-2m-H]
+    output_subdir: "compare_H-only"
+    description: "水平2mのみ比べる（移動平均窓12m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 12.0
+  
+  - id: compare_V_2m_moving_average_12m
+    cases: [DF-2m-V, SDF-2m-5kPa-V, SDF-2m-20kPa-V, EF-2m-V]
+    output_subdir: "compare_V-only"
+    description: "鉛直2mのみ比べる（移動平均窓12m）"
+    kernels: [moving_average]    # kernels: [point, gaussian, median]   # 省略時は common.yml に従う
+    smoothing:
+      window_m: 12.0
